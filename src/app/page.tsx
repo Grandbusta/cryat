@@ -1,33 +1,24 @@
 'use client'
 import Image from 'next/image'
-import { JSX, SVGProps, useEffect, useState } from 'react'
-import Web3 from 'web3'
+import { JSX, SVGProps, useState } from 'react'
+import { ConnectWalllet } from './Utils/web3'
 
 export default function Home() {
-  const providerUrl =
-    'https://goerli.infura.io/v3/af12bb5a50ba4edeba26b0662c4184a8'
-  let web3 = new Web3(providerUrl)
-
+  const [walletLoading, setWalletLoading] = useState(false)
   const [walletConnected, setWalletConnected] = useState(false)
   const [walletAddress, setWalletAddress] = useState('')
   const [walletBalance, setWalletBalance] = useState('0.00')
 
-  const handleConnectWalllet = () => {
-    let provider = window.ethereum
-    if (typeof provider != 'undefined') {
-      console.log('Metamask connected')
-      provider
-        .request({ method: 'eth_requestAccounts' })
-        .then((accounts: any) => {
-          setWalletAddress(accounts[0])
-          setWalletConnected(true)
-          web3.eth.getBalance(accounts[0]).then((bal) => {
-            let val = web3.utils.fromWei(bal, 'ether')
-            let formattedVal = parseFloat(val).toFixed(4)
-            setWalletBalance(formattedVal)
-          })
-        })
+  const handleConnectWalllet = async () => {
+    if (walletLoading) return
+    setWalletLoading(true)
+    const result = await ConnectWalllet()
+    if (result.account != '') {
+      setWalletAddress(result.account)
+      setWalletConnected(true)
+      setWalletBalance(result.balance)
     }
+    setWalletLoading(false)
   }
 
   return (
@@ -44,8 +35,14 @@ export default function Home() {
               className='bg-[#1ba34d] hover:bg-[#12803a] py-2 w-full rounded-lg flex items-center justify-center'
               onClick={handleConnectWalllet}
             >
-              <WalletIcon className='h-5 w-5 mr-2' />
-              Connect wallet
+              {walletLoading ? (
+                <>Connecting...</>
+              ) : (
+                <>
+                  <WalletIcon className='h-5 w-5 mr-2' />
+                  Connect wallet
+                </>
+              )}
             </button>
           )}
 
