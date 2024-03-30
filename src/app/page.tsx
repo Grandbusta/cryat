@@ -1,24 +1,46 @@
 'use client'
 import Image from 'next/image'
-import { JSX, SVGProps, useState } from 'react'
-import { ConnectWalllet } from './Utils/web3'
+import { JSX, SVGProps, useEffect, useState } from 'react'
+import { ConnectWalllet, getContract, sendTransaction } from './Utils/web3'
 
 export default function Home() {
   const [walletLoading, setWalletLoading] = useState(false)
   const [walletConnected, setWalletConnected] = useState(false)
   const [walletAddress, setWalletAddress] = useState('')
   const [walletBalance, setWalletBalance] = useState('0.00')
+  const [ethAmount, setEthAmount] = useState('')
+  const [isCorrectChain,setIsCorrectChain]=useState(false)
+  const requiredChainId = "84532"
 
   const handleConnectWalllet = async () => {
     if (walletLoading) return
     setWalletLoading(true)
     const result = await ConnectWalllet()
-    if (result.account != '') {
+    if (result.account !== '') {
       setWalletAddress(result.account)
       setWalletConnected(true)
       setWalletBalance(result.balance)
     }
+    if(result.chainId===requiredChainId){
+      setIsCorrectChain(true)
+    }else{
+      setIsCorrectChain(false)
+    }
+  
+    const contract = await getContract()
+    console.log('appName:', await contract.methods.getAppName().call())
     setWalletLoading(false)
+  }
+
+  useEffect(() => {
+    handleConnectWalllet()
+  }, [])
+
+  const handleSwap = async () => {
+    if (ethAmount <= walletBalance) {
+      console.log(ethAmount)
+      await sendTransaction(walletAddress, ethAmount)
+    }
   }
 
   return (
@@ -54,6 +76,10 @@ export default function Home() {
               className='w-full rounded-sm text-white py-1 px-2 mt-2 bg-slate-900'
               id=''
               placeholder='0.1'
+              value={ethAmount}
+              onChange={(e) => {
+                setEthAmount(e.target.value)
+              }}
             />
           </div>
           <div className='pt-6'>
@@ -96,7 +122,10 @@ export default function Home() {
               placeholder='8921764523'
             />
           </div>
-          <button className='bg-[#2371ed] hover:bg-[#1855b8] py-2 mt-6 w-full rounded-lg flex items-center justify-center'>
+          <button
+            className='bg-[#2371ed] hover:bg-[#1855b8] py-2 mt-6 w-full rounded-lg flex items-center justify-center'
+            onClick={handleSwap}
+          >
             Swap
           </button>
         </div>
